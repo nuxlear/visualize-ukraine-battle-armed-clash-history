@@ -8,6 +8,7 @@
         <script src="https://d3js.org/d3.v7.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3-geo@3"></script>
         <script src="https://unpkg.com/topojson@3"></script>
+        <script src="https://unpkg.com/@popperjs/core@2"></script>
 
         <script src="components/map.js"></script>
         <script src="components/event.js"></script>
@@ -148,6 +149,13 @@
                     <div id="slider-range"></div>
                 </div>
             </div>
+
+            <div class="tooltip bs-tooltip-top show" id="sc-tooltip" role="tooltip" style="display: none">
+                <div class="tooltip-arrow"></div>
+                <div class="tooltip-inner">
+                Some tooltip text!
+                </div>
+            </div>
         </div>
 
         <!-- <script>
@@ -222,6 +230,8 @@
                 .translate([width / 2, height / 2]);
             var path = d3.geoPath()
                 .projection(projection);
+
+            var tooltip = d3.select('#sc-tooltip')
             
             d3.json('https://raw.githubusercontent.com/org-scn-design-studio-community/sdkcommunitymaps/master/geojson/Europe/Ukraine-regions.json').then(
                 data => {
@@ -322,8 +332,27 @@
                         // .attr('fill', '#FF000080')
                         .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
                         .attr('r', 3)
-                        .append('title')
-                        .text(d => d.sub_event_type);
+                        .on('mouseover', (e, d) => {
+                            tooltip.select('.tooltip-inner')
+                                .html(`${d.sub_event_type}<br />Date: ${d.event_date}`);
+                            
+                            Popper.createPopper(e.target, tooltip.node(), {
+                                placement: 'top',
+                                modifiers: [
+                                    {
+                                        name: 'arrow',
+                                            options: {
+                                            element: this.tooltip.select(".tooltip-arrow").node()
+                                        }
+                                    }
+                                ]
+                            });
+
+                            tooltip.style('display', 'block');
+                        })
+                        .on('mouseout', (d) => {
+                            tooltip.style('display', 'none');
+                        });
                 }
             )
 
@@ -360,6 +389,10 @@
             function check_display(item, option_list) {
                 let idx = event_type_list.findIndex(d => d === item.sub_event_type);
                 return option_list[idx] && dt_cur_from < item.dt && item.dt < dt_cur_to;
+            }
+
+            function cleanse_region_name(name) {
+                // TODO: replace region name of Ukraine map to dataset's location name.
             }
         </script>
     </body>
