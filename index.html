@@ -209,6 +209,9 @@
             var svg = d3.select('#map')
                 .attr('width', width)
                 .attr('height', height);
+            var world_container = svg.append('g')
+                .attr('width', width)
+                .attr('height', height);
             var map_container = svg.append('g')
                 .attr('width', width)
                 .attr('height', height);
@@ -232,14 +235,23 @@
                         .attr('fill', 'grey')
                         .attr('stroke', 'white')
                         .attr('stroke-width', '1')
-                        // .on('mouseover', 
-                        // (e, d) => {
-                        //     d.attr('fill', 'red');
-                        // })
                         .append('title') // Add a tooltop
                         .text(d => d.properties.NAME_1);
                 }
             );
+
+            d3.json('https://raw.githubusercontent.com/markmarkoh/datamaps/master/src/js/data/world.hires.json').then(
+                data => {
+                    world_container.selectAll('path')
+                        .data(data.features.filter(d => d.id != 'UKR'))
+                        .enter()
+                        .append('path')
+                        .attr('d', path)
+                        .attr('fill', '#444444')
+                        .attr('stroke', 'white')
+                        .attr('stroke-width', '1')
+                }
+            )
             
             var event_container = svg.append('g')
                 .attr('width', width)
@@ -248,6 +260,9 @@
             d3.csv('output.csv').then(
                 data => {
                     // data = data.filter(d => d.sub_event_type != 'Armed clash')
+                    data.forEach(d => {
+                        d.dt = new Date(d.event_date);
+                    })
 
                     let zScale = d3.scaleOrdinal()
                         .domain(event_type_list)
@@ -258,7 +273,7 @@
                     /* Script for bi-directional range slider */
                     // var dt_from = "2014/11/01 00:34:44";
                     // var dt_to = "2014/11/24 16:37:43";
-                    var dates = data.map(d => new Date(d.event_date));
+                    var dates = data.map(d => d.dt);
                     var dt_from = Math.min(...dates);
                     var dt_to = Math.max(...dates);
 
@@ -313,10 +328,13 @@
             )
 
             svg.call(
-                d3.zoom().on('zoom', ({ transform }) => {
-                    map_container.attr('transform', transform);
-                    event_container.attr('transform', transform);
-                })
+                d3.zoom()
+                    .scaleExtent([-5, 20])
+                    .on('zoom', ({ transform }) => {
+                        world_container.attr('transform', transform);
+                        map_container.attr('transform', transform);
+                        event_container.attr('transform', transform);
+                    })
             );
 
             d3.selectAll('input[type=checkbox]').on('change', updateAll);
@@ -341,8 +359,7 @@
 
             function check_display(item, option_list) {
                 let idx = event_type_list.findIndex(d => d === item.sub_event_type);
-                let dt = new Date(item.event_date);
-                return option_list[idx] && dt_cur_from < dt && dt < dt_cur_to;
+                return option_list[idx] && dt_cur_from < item.dt && item.dt < dt_cur_to;
             }
         </script>
     </body>
