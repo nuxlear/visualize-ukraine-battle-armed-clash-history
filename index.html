@@ -198,7 +198,7 @@
         <script>
             let circle;
             let event_data;
-            let 
+            let dt_cur_from, dt_cur_to;
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#44444480', '#FF2222C0', '#22FF22C0'];
@@ -287,11 +287,13 @@
                         step: 10,
                         values: [min_val, max_val],
                         slide: function (e, ui) {
-                            var dt_cur_from = new Date(ui.values[0]*1000); //.format("yyyy-mm-dd hh:ii:ss");
+                            dt_cur_from = new Date(ui.values[0]*1000); //.format("yyyy-mm-dd hh:ii:ss");
                             $('.slider-time').html(formatDT(dt_cur_from));
 
-                            var dt_cur_to = new Date(ui.values[1]*1000); //.format("yyyy-mm-dd hh:ii:ss");                
+                            dt_cur_to = new Date(ui.values[1]*1000); //.format("yyyy-mm-dd hh:ii:ss");                
                             $('.slider-time2').html(formatDT(dt_cur_to));
+
+                            updateAll();
                         }
                     });
 
@@ -305,7 +307,6 @@
                         // .attr('fill', '#FF000080')
                         .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
                         .attr('r', 3)
-                        // .style('display', )
                         .append('title')
                         .text(d => d.sub_event_type);
                 }
@@ -333,12 +334,15 @@
                     }
                 }
 
-                circle.style('display', d => check_display(d.sub_event_type, [show_clash, show_overtake, show_regain]) ? 'inline' : 'none')
+                circle.style('display', d => check_display(d, [show_clash, show_overtake, show_regain]) ? 
+                    'inline' 
+                    : 'none')
             }
 
-            function check_display(event_type, option_list) {
-                let idx = event_type_list.findIndex(d => d === event_type);
-                return option_list[idx];
+            function check_display(item, option_list) {
+                let idx = event_type_list.findIndex(d => d === item.sub_event_type);
+                let dt = new Date(item.event_date);
+                return option_list[idx] && dt_cur_from < dt && dt < dt_cur_to;
             }
         </script>
     </body>
