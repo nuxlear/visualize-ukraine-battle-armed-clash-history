@@ -10,6 +10,108 @@
         <script src="https://unpkg.com/topojson@3"></script>
 
         <script src="components/map.js"></script>
+        <script src="components/event.js"></script>
+
+        <style>
+            #time-range p {
+                font-family:"Arial", sans-serif;
+                font-size:14px;
+                color:#333;
+            }
+            .ui-slider-horizontal {
+                height: 8px;
+                background: #D7D7D7;
+                border: 1px solid #BABABA;
+                box-shadow: 0 1px 0 #FFF, 0 1px 0 #CFCFCF inset;
+                clear: both;
+                margin: 8px 0;
+                -webkit-border-radius: 6px;
+                -moz-border-radius: 6px;
+                -ms-border-radius: 6px;
+                -o-border-radius: 6px;
+                border-radius: 6px;
+            }
+            .ui-slider {
+                position: relative;
+                text-align: left;
+            }
+            .ui-slider-horizontal .ui-slider-range {
+                top: -1px;
+                height: 100%;
+            }
+            .ui-slider .ui-slider-range {
+                position: absolute;
+                z-index: 1;
+                height: 8px;
+                font-size: .7em;
+                display: block;
+                border: 1px solid #5BA8E1;
+                box-shadow: 0 1px 0 #AAD6F6 inset;
+                -moz-border-radius: 6px;
+                -webkit-border-radius: 6px;
+                -khtml-border-radius: 6px;
+                border-radius: 6px;
+                background: #81B8F3;
+                background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgi…pZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JhZCkiIC8+PC9zdmc+IA==');
+                background-size: 100%;
+                background-image: -webkit-gradient(linear, 50% 0, 50% 100%, color-stop(0%, #A0D4F5), color-stop(100%, #81B8F3));
+                background-image: -webkit-linear-gradient(top, #A0D4F5, #81B8F3);
+                background-image: -moz-linear-gradient(top, #A0D4F5, #81B8F3);
+                background-image: -o-linear-gradient(top, #A0D4F5, #81B8F3);
+                background-image: linear-gradient(top, #A0D4F5, #81B8F3);
+            }
+            .ui-slider .ui-slider-handle {
+                border-radius: 50%;
+                background: #F9FBFA;
+                background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgi…pZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JhZCkiIC8+PC9zdmc+IA==');
+                background-size: 100%;
+                background-image: -webkit-gradient(linear, 50% 0, 50% 100%, color-stop(0%, #C7CED6), color-stop(100%, #F9FBFA));
+                background-image: -webkit-linear-gradient(top, #C7CED6, #F9FBFA);
+                background-image: -moz-linear-gradient(top, #C7CED6, #F9FBFA);
+                background-image: -o-linear-gradient(top, #C7CED6, #F9FBFA);
+                background-image: linear-gradient(top, #C7CED6, #F9FBFA);
+                width: 22px;
+                height: 22px;
+                -webkit-box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.6), 0 -1px 0 1px rgba(0, 0, 0, 0.15) inset, 0 1px 0 1px rgba(255, 255, 255, 0.9) inset;
+                -moz-box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.6), 0 -1px 0 1px rgba(0, 0, 0, 0.15) inset, 0 1px 0 1px rgba(255, 255, 255, 0.9) inset;
+                box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.6), 0 -1px 0 1px rgba(0, 0, 0, 0.15) inset, 0 1px 0 1px rgba(255, 255, 255, 0.9) inset;
+                -webkit-transition: box-shadow .3s;
+                -moz-transition: box-shadow .3s;
+                -o-transition: box-shadow .3s;
+                transition: box-shadow .3s;
+            }
+            .ui-slider .ui-slider-handle {
+                position: absolute;
+                z-index: 2;
+                width: 22px;
+                height: 22px;
+                cursor: default;
+                border: none;
+                cursor: pointer;
+            }
+            .ui-slider .ui-slider-handle:after {
+                content:"";
+                position: absolute;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                top: 50%;
+                margin-top: -4px;
+                left: 50%;
+                margin-left: -4px;
+                background: #30A2D2;
+                -webkit-box-shadow: 0 1px 1px 1px rgba(22, 73, 163, 0.7) inset, 0 1px 0 0 #FFF;
+                -moz-box-shadow: 0 1px 1px 1px rgba(22, 73, 163, 0.7) inset, 0 1px 0 0 white;
+                box-shadow: 0 1px 1px 1px rgba(22, 73, 163, 0.7) inset, 0 1px 0 0 #FFF;
+            }
+            .ui-slider-horizontal .ui-slider-handle {
+                top: -.5em;
+                margin-left: -.6em;
+            }
+            .ui-slider a:focus {
+                outline:none;
+            }
+        </style>
     </head>
 
     <body>
@@ -35,16 +137,79 @@
                 Government regains territory
                 </label>
             </div>
+
+            <script type='text/javascript' src='//code.jquery.com/jquery-2.0.2.js'></script>
+            <script type="text/javascript" src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+            <link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+            <div id="time-range" style="width: 300px;">
+                <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
+                </p>
+                <div class="sliders_step1">
+                    <div id="slider-range"></div>
+                </div>
+            </div>
         </div>
+
+        <!-- <script>
+            var width = 1440;
+            var height = 900;
+
+            var show_clash = d3.select('#show-clash').property('checked');
+            var show_overtake = d3.select('#show-overtake').property('checked');
+            var show_regain = d3.select('#show-regain').property('checked');
+            var options = {
+                'toggle': {
+                    'show_clash': show_clash,
+                    'show_overtake': show_overtake,
+                    'show_regain': show_regain
+                }
+            }
+
+            var svg = d3.select('#map')
+                .attr('width', width)
+                .attr('height', height);
+
+            let map = new MapRenderer(svg, width=width, height=height);
+            map.initialize();
+
+            let event = new EventPlotter(map.container, map.projection);
+            event.initialize(options);
+
+            updateAll();
+            d3.selectAll('input[type=checkbox]').on('change', updateAll);
+
+            function updateAll() {
+                show_clash = d3.select('#show-clash').property('checked');
+                show_overtake = d3.select('#show-overtake').property('checked');
+                show_regain = d3.select('#show-regain').property('checked');
+
+                options = {
+                    'toggle': {
+                        'show_clash': show_clash,
+                        'show_overtake': show_overtake,
+                        'show_regain': show_regain
+                    }
+                }
+                map.render(event.data);
+                event.update(options);
+            }
+        </script> -->
         
         <script>
+            let circle;
+            let event_data;
+            let 
+            
+            const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
+            const event_type_colormap = ['#44444480', '#FF2222C0', '#22FF22C0'];
+
             var width = 1440;
             var height = 900;
             
             var svg = d3.select('#map')
                 .attr('width', width)
                 .attr('height', height);
-            var g = svg.append('g')
+            var map_container = svg.append('g')
                 .attr('width', width)
                 .attr('height', height);
             
@@ -54,18 +219,12 @@
                 .translate([width / 2, height / 2]);
             var path = d3.geoPath()
                 .projection(projection);
-
-            svg.call(
-                d3.zoom().on('zoom', ({ transform }) => {
-                    g.attr('transform', transform);
-                })
-            );
             
             d3.json('https://raw.githubusercontent.com/org-scn-design-studio-community/sdkcommunitymaps/master/geojson/Europe/Ukraine-regions.json').then(
                 data => {
                     const regions = topojson.feature(data, data.objects.UKR_adm1);
 
-                    g.selectAll('path')
+                    map_container.selectAll('path')
                         .data(regions.features)
                         .enter()
                         .append('path')
@@ -80,32 +239,107 @@
                         .append('title') // Add a tooltop
                         .text(d => d.properties.NAME_1);
                 }
-            ).then(
-                d3.csv('output.csv').then(
-                    data => {
-                        // data = data.filter(d => d.sub_event_type != 'Armed clash')
+            );
+            
+            var event_container = svg.append('g')
+                .attr('width', width)
+                .attr('height', height);
+            
+            d3.csv('output.csv').then(
+                data => {
+                    // data = data.filter(d => d.sub_event_type != 'Armed clash')
 
-                        colormap = ['#44444480', '#FF2222C0', '#22FF22C0']
-                        let zScale = d3.scaleOrdinal()
-                            .domain(['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'])
-                            .range([0, 1, 2])
-                            
-                        console.log(data);
+                    let zScale = d3.scaleOrdinal()
+                        .domain(event_type_list)
+                        .range([0, 1, 2])
+                        
+                    event_data = data;
 
-                        g.selectAll('circle')
-                            .data(data)
-                            .join('circle')
-                            .attr('cx', d => projection([d.longitude, d.latitude])[0])
-                            .attr('cy', d => projection([d.longitude, d.latitude])[1])
-                            // .attr('fill', '#FF000080')
-                            .attr('fill', d => colormap[zScale(d.sub_event_type)])
-                            .attr('r', 3)
-                            .style('z-index', d => zScale(d.sub_event_type) + 1)
-                            .append('title')
-                            .text(d => d.sub_event_type);
+                    /* Script for bi-directional range slider */
+                    // var dt_from = "2014/11/01 00:34:44";
+                    // var dt_to = "2014/11/24 16:37:43";
+                    var dates = data.map(d => new Date(d.event_date));
+                    var dt_from = Math.min(...dates);
+                    var dt_to = Math.max(...dates);
+
+                    $('.slider-time').html(formatDT(dt_from));
+                    $('.slider-time2').html(formatDT(dt_to));
+                    var min_val = dt_from / 1000;
+                    var max_val = dt_to / 1000;
+
+                    function zeroPad(num, places) {
+                        var zero = places - num.toString().length + 1;
+                        return Array(+(zero > 0 && zero)).join("0") + num;
                     }
-                )
+
+                    function formatDT(__dt) {
+                        __dt = new Date(__dt);
+                        var year = __dt.getFullYear();
+                        var month = zeroPad(__dt.getMonth()+1, 2);
+                        var date = zeroPad(__dt.getDate(), 2);
+                        return year + '-' + month + '-' + date;
+                    };
+
+                    $("#slider-range").slider({
+                        range: true,
+                        min: min_val,
+                        max: max_val,
+                        step: 10,
+                        values: [min_val, max_val],
+                        slide: function (e, ui) {
+                            var dt_cur_from = new Date(ui.values[0]*1000); //.format("yyyy-mm-dd hh:ii:ss");
+                            $('.slider-time').html(formatDT(dt_cur_from));
+
+                            var dt_cur_to = new Date(ui.values[1]*1000); //.format("yyyy-mm-dd hh:ii:ss");                
+                            $('.slider-time2').html(formatDT(dt_cur_to));
+                        }
+                    });
+
+                    circle = event_container.selectAll('circle')
+                        .data(data)
+                        .join('circle')
+                    
+                    circle
+                        .attr('cx', d => projection([d.longitude, d.latitude])[0])
+                        .attr('cy', d => projection([d.longitude, d.latitude])[1])
+                        // .attr('fill', '#FF000080')
+                        .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
+                        .attr('r', 3)
+                        // .style('display', )
+                        .append('title')
+                        .text(d => d.sub_event_type);
+                }
             )
+
+            svg.call(
+                d3.zoom().on('zoom', ({ transform }) => {
+                    map_container.attr('transform', transform);
+                    event_container.attr('transform', transform);
+                })
+            );
+
+            d3.selectAll('input[type=checkbox]').on('change', updateAll);
+
+            function updateAll() {
+                show_clash = d3.select('#show-clash').property('checked');
+                show_overtake = d3.select('#show-overtake').property('checked');
+                show_regain = d3.select('#show-regain').property('checked');
+
+                options = {
+                    'toggle': {
+                        'show_clash': show_clash,
+                        'show_overtake': show_overtake,
+                        'show_regain': show_regain
+                    }
+                }
+
+                circle.style('display', d => check_display(d.sub_event_type, [show_clash, show_overtake, show_regain]) ? 'inline' : 'none')
+            }
+
+            function check_display(event_type, option_list) {
+                let idx = event_type_list.findIndex(d => d === event_type);
+                return option_list[idx];
+            }
         </script>
     </body>
 </html>
