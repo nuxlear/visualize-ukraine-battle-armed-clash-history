@@ -209,7 +209,7 @@
             let dt_cur_from, dt_cur_to;
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
-            const event_type_colormap = ['#44444480', '#FF2222C0', '#22FF22C0'];
+            const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
 
             var width = 1440;
             var height = 900;
@@ -331,10 +331,14 @@
                         .attr('cy', d => projection([d.longitude, d.latitude])[1])
                         // .attr('fill', '#FF000080')
                         .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
-                        .attr('r', 3)
+                        .attr('r', d => 2 + 2 * Math.log10(1 + d.fatalities))
                         .on('mouseover', (e, d) => {
                             tooltip.select('.tooltip-inner')
-                                .html(`${d.sub_event_type}<br />Date: ${d.event_date}`);
+                                .html(`<strong>${d.sub_event_type}</strong>
+                                <br/>Date: ${d.event_date}
+                                <br/>Lat: ${d.latitude} Lon: ${d.longitude}
+                                <br/> > <i>${d.notes}</i>
+                                <br/> Fatalities: ${d.fatalities}`);
                             
                             Popper.createPopper(e.target, tooltip.node(), {
                                 placement: 'top',
@@ -358,7 +362,7 @@
 
             svg.call(
                 d3.zoom()
-                    .scaleExtent([-5, 20])
+                    .scaleExtent([0.5, 20])
                     .on('zoom', ({ transform }) => {
                         world_container.attr('transform', transform);
                         map_container.attr('transform', transform);
