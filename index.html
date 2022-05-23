@@ -255,6 +255,7 @@
                 map_container
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
+                circle.style('display', 'inline');
                 updateAll();
                 event_map_ui.style('display', 'block');
             });
@@ -362,8 +363,8 @@
 
                     /* Script for bi-directional range slider */
                     var dates = data.map(d => d.dt);
-                    dt_from = Math.min(...dates);
-                    dt_to = Math.max(...dates);
+                    dt_from = dt_cur_from = Math.min(...dates);
+                    dt_to = dt_cur_to = Math.max(...dates);
 
                     $('.slider-time').html(formatDT(dt_from));
                     $('.slider-time2').html(formatDT(dt_to));
