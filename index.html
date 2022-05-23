@@ -149,21 +149,25 @@
                         </label>
                     </div>
                 
-                <div id="time-range" style="width: 300px;">
-                    <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
-                    </p>
-                    <!-- <input type="date" class="slider-time" name="from-date", value="">
-                    <input type="date" class="slider-time2" name="to-date", value=""> -->
-                    <div class="sliders_step1">
-                        <div id="slider-range"></div>
-                    </div>
-    
-                    <div class="tooltip bs-tooltip-top show" id="sc-tooltip" role="tooltip" style="display: none">
-                        <div class="tooltip-arrow"></div>
-                        <div class="tooltip-inner">
-                            Some tooltip text!
+                    <div id="time-range" style="width: 300px;">
+                        <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
+                        </p>
+                        <div class="sliders_step1">
+                            <div id="slider-range"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+            <div class="tooltip bs-tooltip-top show" id="event-tooltip" role="tooltip" style="display: none">
+                <div class="tooltip-arrow"></div>
+                <div class="tooltip-inner">
+                    Some tooltip text!
+                </div>
+            </div>
+            <div class="tooltip bs-tooltip-top show" id="region-tooltip" role="tooltip" style="display: none">
+                <div class="tooltip-arrow"></div>
+                <div class="tooltip-inner">
+                    Some tooltip text!
                 </div>
             </div>
         </div>
@@ -200,7 +204,9 @@
             var path = d3.geoPath()
                 .projection(projection);
 
-            var tooltip = d3.select('#sc-tooltip')
+            var region_tooltip = d3.select('#region-tooltip')
+            var event_tooltip = d3.select('#event-tooltip')
+
             var event_map_ui = d3.select("#event-ui")
 
             function fill_danger_color(item) {
@@ -241,7 +247,7 @@
 
             function check_display(item, option_list) {
                 let idx = event_type_list.findIndex(d => d === item.sub_event_type);
-                return option_list[idx] && dt_cur_from < item.dt && item.dt < dt_cur_to;
+                return option_list[idx] && dt_cur_from <= item.dt && item.dt <= dt_cur_to;
             }
 
             d3.select('#event-map-btn').on('click', () => {
@@ -285,8 +291,34 @@
                         .attr('stroke', 'white')
                         .attr('stroke-width', '1')
                         .attr('fill', d => fill_danger_color(d))
-                        .append('title') // Add a tooltop
-                        .text(d => d.properties.mapped_name);
+                        .on('mouseover', (e, d) => {
+                            var txt = `<strong>${d.properties.mapped_name}</strong>`
+                            if (d.properties.mapped_name in danger_info && mode == 'danger') {
+                                var info = danger_info[d.properties.mapped_name];
+                                txt += `<br/># of events: ${info.num_events}
+                                        <br/>total. fatalities: ${info.total_fatalities}`
+                            }
+                                
+                            region_tooltip.select('.tooltip-inner')
+                                .html(txt);
+                            
+                            Popper.createPopper(e.target, region_tooltip.node(), {
+                                placement: 'top',
+                                modifiers: [
+                                    {
+                                        name: 'arrow',
+                                            options: {
+                                            element: this.region_tooltip.select(".tooltip-arrow").node()
+                                        }
+                                    }
+                                ]
+                            });
+
+                            region_tooltip.style('display', 'block');
+                        })
+                        .on('mouseout', (d) => {
+                            region_tooltip.style('display', 'none');
+                        });
                 }
             );
 
@@ -335,34 +367,6 @@
 
                     $('.slider-time').html(formatDT(dt_from));
                     $('.slider-time2').html(formatDT(dt_to));
-                    // d3.select('input[name=from-date]')
-                    //     .property('value', formatDT(dt_from))
-                    //     .on('change', (e) => {
-                    //         var fdt = d3.select('input[name=from-date]').property('value');
-                    //         dt_cur_from = new Date(fdt);
-                    //         $('.slider-time').html(formatDT(dt_cur_from));
-                            
-                    //         var tdt = d3.select('input[name=to-date]').property('value');
-                    //         dt_cur_to = new Date(tdt);              
-                    //         $('.slider-time2').html(formatDT(dt_cur_to));
-
-                    //         $('#slider-range').slider('value', [dt_cur_from / 1000, dt_cur_to / 1000]);
-                    //         updateAll();
-                    //     });
-                    // d3.select('input[name=to-date]')
-                    //     .property('value', formatDT(dt_to))
-                    //     .on('change', (e) => {
-                    //         var fdt = d3.select('input[name=from-date]').property('value');
-                    //         dt_cur_from = new Date(fdt);
-                    //         $('.slider-time').html(formatDT(dt_cur_from));
-                            
-                    //         var tdt = d3.select('input[name=to-date]').property('value');
-                    //         dt_cur_to = new Date(tdt);              
-                    //         $('.slider-time2').html(formatDT(dt_cur_to));
-
-                    //         $('#slider-range').slider('value', [dt_cur_from / 1000, dt_cur_to / 1000]);
-                    //         updateAll();
-                    //     });
 
                     var min_val = dt_from / 1000;
                     var max_val = dt_to / 1000;
@@ -410,36 +414,36 @@
                         .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
                         .attr('r', d => 2 + 2 * Math.log10(1 + d.fatalities))
                         .on('mouseover', (e, d) => {
-                            tooltip.select('.tooltip-inner')
+                            event_tooltip.select('.tooltip-inner')
                                 .html(`<strong>${d.sub_event_type}</strong>
                                 <br/>Date: ${d.event_date}
                                 <br/>Lat: ${d.latitude} Lon: ${d.longitude}
                                 <br/> > <i>${d.notes}</i>
                                 <br/> Fatalities: ${d.fatalities}`);
                             
-                            Popper.createPopper(e.target, tooltip.node(), {
+                            Popper.createPopper(e.target, event_tooltip.node(), {
                                 placement: 'top',
                                 modifiers: [
                                     {
                                         name: 'arrow',
                                             options: {
-                                            element: this.tooltip.select(".tooltip-arrow").node()
+                                            element: this.event_tooltip.select(".tooltip-arrow").node()
                                         }
                                     }
                                 ]
                             });
 
-                            tooltip.style('display', 'block');
+                            event_tooltip.style('display', 'block');
                         })
                         .on('mouseout', (d) => {
-                            tooltip.style('display', 'none');
+                            event_tooltip.style('display', 'none');
                         });
                 }
             )
 
-            svg.on('click', () => {
-                tooltip.style('display', 'none');
-            });
+            // svg.on('click', () => {
+            //     event_tooltip.style('display', 'none');
+            // });
 
             svg.call(
                 d3.zoom()
@@ -447,7 +451,6 @@
                     .on('zoom', ({ transform }) => {
                         world_container.attr('transform', transform);
                         map_container.attr('transform', transform);
-                        danger_map_container.attr('transform', transform);
                         event_container.attr('transform', transform);
                     })
             );
