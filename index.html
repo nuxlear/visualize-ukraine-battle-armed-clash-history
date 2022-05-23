@@ -10,6 +10,16 @@
         <script src="https://unpkg.com/topojson@3"></script>
         <script src="https://unpkg.com/@popperjs/core@2"></script>
 
+        <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-ease@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-selection@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-timer@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-drag@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-transition@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-brush@3"></script>
+
         <script src="components/map.js"></script>
         <script src="components/event.js"></script>
         <script src="components/utils.js"></script>
@@ -117,6 +127,10 @@
             .ui-slider a:focus {
                 outline:none;
             }
+            .brushed {
+                stroke-width: 1;
+                stroke: white;
+            }
         </style>
     </head>
 
@@ -178,6 +192,8 @@
             let event_data;
             let dt_from, dt_to, dt_cur_from, dt_cur_to;
             let danger_info = {};
+            let zoom, brush;
+            var shift_key, brush_rect;
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
@@ -208,6 +224,22 @@
             var event_tooltip = d3.select('#event-tooltip')
 
             var event_map_ui = d3.select("#event-ui")
+
+            brush = d3.brush()
+                .extent([[0, 0], [width, height]])
+                .on('start brush', (e) => {
+                    brush_circles(e);
+                })
+            zoom = d3.zoom()
+                .scaleExtent([0.5, 20])
+                .on('zoom', ({ transform }) => {
+                    world_container.attr('transform', transform);
+                    map_container.attr('transform', transform);
+                    event_container.attr('transform', transform);
+                })
+            
+            // svg.call(brush);
+            svg.call(zoom);
 
             function fill_danger_color(item) {
                 if (mode !== 'danger')
@@ -250,30 +282,53 @@
                 return option_list[idx] && dt_cur_from <= item.dt && item.dt <= dt_cur_to;
             }
 
+            function brush_circles(event) {
+                let selection = event.selection;
+                circle.classed('brushed', d => is_brushed(d, selection))
+            }
+
+            function is_brushed(d, selection) {
+                let [[x0, y0], [x1, y1]] = selection;
+                let [x, y] = projection([d.longitude, d.latitude]);
+                return x0 <= x && x <= x1 && y0 <= y && y <= y1;
+            }
+
             d3.select('#event-map-btn').on('click', () => {
                 mode = 'event';
+
                 map_container
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
                 circle.style('display', 'inline');
                 updateAll();
                 event_map_ui.style('display', 'block');
+                
+                svg.call(zoom);
+                svg.on('.brush', null);
             });
             d3.select('#danger-map-btn').on('click', () => {
                 mode = 'danger';
+
                 map_container
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
                 circle.style('display', 'none');
                 event_map_ui.style('display', 'none');
+                
+                svg.call(zoom);
+                svg.on('.brush', null);
             });
             d3.select('#stat-map-btn').on('click', () => {
                 mode = 'stat';
+
                 map_container
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
                 circle.style('display', 'inline');
                 event_map_ui.style('display', 'none');
+                
+                svg.call(brush);
+                svg.on('.zoom', null);
             });
             
             d3.json('https://raw.githubusercontent.com/org-scn-design-studio-community/sdkcommunitymaps/master/geojson/Europe/Ukraine-regions.json').then(
@@ -413,7 +468,17 @@
                         .attr('cy', d => projection([d.longitude, d.latitude])[1])
                         // .attr('fill', '#FF000080')
                         .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
-                        .attr('r', d => 2 + 2 * Math.log10(1 + d.fatalities))
+                        .attr('r', d => 1 + 3 * Math.log10(1 + d.fatalities))
+                        .on('mousedown', (d) => {
+                            if (shift_key) {
+                                d3.select(this).classed('selected', (d.selected = !d.selected))
+                            }
+                            else {
+                                circle.classed('selected', (p) => {
+                                    return (p.selected = (d === p));
+                                })
+                            }
+                        })
                         .on('mouseover', (e, d) => {
                             event_tooltip.select('.tooltip-inner')
                                 .html(`<strong>${d.sub_event_type}</strong>
@@ -439,22 +504,11 @@
                         .on('mouseout', (d) => {
                             event_tooltip.style('display', 'none');
                         });
+                    circle.classed('selected', (d) => {
+                        return d.selected;
+                    })
                 }
             )
-
-            // svg.on('click', () => {
-            //     event_tooltip.style('display', 'none');
-            // });
-
-            svg.call(
-                d3.zoom()
-                    .scaleExtent([0.5, 20])
-                    .on('zoom', ({ transform }) => {
-                        world_container.attr('transform', transform);
-                        map_container.attr('transform', transform);
-                        event_container.attr('transform', transform);
-                    })
-            );
 
             d3.selectAll('input[type=checkbox]').on('change', updateAll);
         </script>
