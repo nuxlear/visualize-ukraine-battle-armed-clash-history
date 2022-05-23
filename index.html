@@ -192,7 +192,7 @@
             let event_data;
             let dt_from, dt_to, dt_cur_from, dt_cur_to;
             let danger_info = {};
-            let zoom, brush;
+            let zoom, brush, brusher;
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
@@ -237,7 +237,10 @@
                     map_container.attr('transform', transform);
                     event_container.attr('transform', transform);
                 })
+            // brusher = svg.append('g')
+            //     .call(brush)
             
+            // brusher.call(brush.clear);
             
             // svg.call(brush);
             svg.call(zoom);
@@ -298,6 +301,45 @@
                 circle.classed('brushed', false);
             }
 
+            function set_tooltip() {
+                circle
+                    .on('mousedown', (d) => {
+                        if (shift_key) {
+                            d3.select(this).classed('selected', (d.selected = !d.selected))
+                        }
+                        else {
+                            circle.classed('selected', (p) => {
+                                return (p.selected = (d === p));
+                            })
+                        }
+                    })
+                    .on('mouseover', (e, d) => {
+                        event_tooltip.select('.tooltip-inner')
+                            .html(`<strong>${d.sub_event_type}</strong>
+                            <br/>Date: ${d.event_date}
+                            <br/>Lat: ${d.latitude} Lon: ${d.longitude}
+                            <br/> > <i>${d.notes}</i>
+                            <br/> Fatalities: ${d.fatalities}`);
+                        
+                        Popper.createPopper(e.target, event_tooltip.node(), {
+                            placement: 'top',
+                            modifiers: [
+                                {
+                                    name: 'arrow',
+                                        options: {
+                                        element: this.event_tooltip.select(".tooltip-arrow").node()
+                                    }
+                                }
+                            ]
+                        });
+
+                        event_tooltip.style('display', 'block');
+                    })
+                    .on('mouseout', (d) => {
+                        event_tooltip.style('display', 'none');
+                    });
+            }
+
             d3.select('#event-map-btn').on('click', () => {
                 mode = 'event';
 
@@ -314,7 +356,11 @@
                 svg.call(zoom);
                 svg.on('.brush', null);
                 svg.call(brush.clear);
-                // brush.extent([[0, 0], [width, height]]);
+                svg.selectAll('rect')
+                    .remove();
+                // d3.select('.brush').call(brush.clear);
+
+                d3.select('rect[cursor=crosshair]').attr('cursor', 'default');
             });
             d3.select('#danger-map-btn').on('click', () => {
                 mode = 'danger';
@@ -330,7 +376,11 @@
                 svg.call(zoom);
                 svg.on('.brush', null);
                 svg.call(brush.clear);
-                d3.select('.brush').call(brush.clear);
+                svg.selectAll('rect')
+                    .remove();
+                // d3.select('.brush').call(brush.clear);
+                
+                d3.select('rect[cursor=crosshair]').attr('cursor', 'default');
             });
             d3.select('#stat-map-btn').on('click', () => {
                 mode = 'stat';
@@ -346,6 +396,8 @@
                 svg.call(brush);
                 svg.call(zoom.transform, d3.zoomIdentity);
                 svg.on('.zoom', null);
+                
+                svg.attr('cursor', 'default');
             });
             
             d3.json('https://raw.githubusercontent.com/org-scn-design-studio-community/sdkcommunitymaps/master/geojson/Europe/Ukraine-regions.json').then(
@@ -520,9 +572,6 @@
                         .on('mouseout', (d) => {
                             event_tooltip.style('display', 'none');
                         });
-                    circle.classed('selected', (d) => {
-                        return d.selected;
-                    })
                 }
             )
 
