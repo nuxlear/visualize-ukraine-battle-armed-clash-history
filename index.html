@@ -12,6 +12,11 @@
 
         <script src="components/map.js"></script>
         <script src="components/event.js"></script>
+        <script src="components/utils.js"></script>
+    
+        <script type='text/javascript' src='//code.jquery.com/jquery-2.0.2.js'></script>
+        <script type="text/javascript" src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+        <link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
 
         <style>
             #time-range p {
@@ -123,73 +128,98 @@
         </div>
         <div id="map-div" style="border: 5px">
             <svg id="map"></svg>
-            <div width="1440">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="show-clash" checked>
-                    <label class="form-check-label" for="show-clash">
-                    Armed clash
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="show-overtake" checked>
-                    <label class="form-check-label" for="show-overtake">
-                    Non-state Actor overtakes territory
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="show-regain" checked>
-                    <label class="form-check-label" for="show-regain">
-                    Government regains territory
-                    </label>
-                </div>
-
-                <script type='text/javascript' src='//code.jquery.com/jquery-2.0.2.js'></script>
-                <script type="text/javascript" src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
-                <link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+            <div id="event-ui">
+                <div width="1440">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="show-clash" checked>
+                        <label class="form-check-label" for="show-clash">
+                        Armed clash
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="show-overtake" checked>
+                        <label class="form-check-label" for="show-overtake">
+                        Non-state Actor overtakes territory
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="show-regain" checked>
+                        <label class="form-check-label" for="show-regain">
+                        Government regains territory
+                        </label>
+                    </div>
+                
                 <div id="time-range" style="width: 300px;">
                     <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
                     </p>
+                    <!-- <input type="date" class="slider-time" name="from-date", value="">
+                    <input type="date" class="slider-time2" name="to-date", value=""> -->
                     <div class="sliders_step1">
                         <div id="slider-range"></div>
                     </div>
-                </div>
-
-                <div class="tooltip bs-tooltip-top show" id="sc-tooltip" role="tooltip" style="display: none">
-                    <div class="tooltip-arrow"></div>
-                    <div class="tooltip-inner">
-                        Some tooltip text!
+    
+                    <div class="tooltip bs-tooltip-top show" id="sc-tooltip" role="tooltip" style="display: none">
+                        <div class="tooltip-arrow"></div>
+                        <div class="tooltip-inner">
+                            Some tooltip text!
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- <script>
+        <script>
+            let mode;
+            let circle;
+            let event_data;
+            let dt_from, dt_to, dt_cur_from, dt_cur_to;
+            let danger_info = {};
+            
+            const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
+            const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
+            const danger_level_colormap = ['grey', '#888866', '#907055', '#885555']
+
             var width = 1440;
             var height = 900;
-
-            var show_clash = d3.select('#show-clash').property('checked');
-            var show_overtake = d3.select('#show-overtake').property('checked');
-            var show_regain = d3.select('#show-regain').property('checked');
-            var options = {
-                'toggle': {
-                    'show_clash': show_clash,
-                    'show_overtake': show_overtake,
-                    'show_regain': show_regain
-                }
-            }
-
+            
             var svg = d3.select('#map')
                 .attr('width', width)
                 .attr('height', height);
+            var world_container = svg.append('g')
+                .attr('width', width)
+                .attr('height', height);
+            
+            var map_container = svg.append('g')
+                .attr('width', width)
+                .attr('height', height);
+            
+            var projection = d3.geoMercator()
+                .center([32, 49])
+                .scale(2800)
+                .translate([width / 2, height / 2]);
+            var path = d3.geoPath()
+                .projection(projection);
 
-            let map = new MapRenderer(svg, width=width, height=height);
-            map.initialize();
+            var tooltip = d3.select('#sc-tooltip')
+            var event_map_ui = d3.select("#event-ui")
 
-            let event = new EventPlotter(map.container, map.projection);
-            event.initialize(options);
-
-            updateAll();
-            d3.selectAll('input[type=checkbox]').on('change', updateAll);
+            function fill_danger_color(item) {
+                if (mode !== 'danger')
+                    return 'grey';
+                
+                var danger = 0;
+                let name = item.properties.mapped_name;
+                if (name in danger_info) {
+                    if (danger_info[name].num_events > 10) {
+                        if (danger_info[name].total_fatalities > 100)
+                            danger = 3;
+                        else if (danger_info[name].total_fatalities > 10)
+                            danger = 2;
+                    }
+                    else    danger = 1;
+                }
+                return danger_level_colormap[danger];
+            }
 
             function updateAll() {
                 show_clash = d3.select('#show-clash').property('checked');
@@ -203,44 +233,48 @@
                         'show_regain': show_regain
                     }
                 }
-                map.render(event.data);
-                event.update(options);
+
+                circle.style('display', d => check_display(d, [show_clash, show_overtake, show_regain]) ? 
+                    'inline' 
+                    : 'none')
             }
-        </script> -->
-        
-        <script>
-            let circle;
-            let event_data;
-            let dt_cur_from, dt_cur_to;
-            
-            const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
-            const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
 
-            var width = 1440;
-            var height = 900;
-            
-            var svg = d3.select('#map')
-                .attr('width', width)
-                .attr('height', height);
-            var world_container = svg.append('g')
-                .attr('width', width)
-                .attr('height', height);
-            var map_container = svg.append('g')
-                .attr('width', width)
-                .attr('height', height);
-            
-            var projection = d3.geoMercator()
-                .center([32, 49])
-                .scale(2800)
-                .translate([width / 2, height / 2]);
-            var path = d3.geoPath()
-                .projection(projection);
+            function check_display(item, option_list) {
+                let idx = event_type_list.findIndex(d => d === item.sub_event_type);
+                return option_list[idx] && dt_cur_from < item.dt && item.dt < dt_cur_to;
+            }
 
-            var tooltip = d3.select('#sc-tooltip')
+            d3.select('#event-map-btn').on('click', () => {
+                mode = 'event';
+                map_container
+                    .selectAll('path')
+                    .attr('fill', d => fill_danger_color(d));
+                updateAll();
+                event_map_ui.style('display', 'block');
+            });
+            d3.select('#danger-map-btn').on('click', () => {
+                mode = 'danger';
+                map_container
+                    .selectAll('path')
+                    .attr('fill', d => fill_danger_color(d));
+                circle.style('display', 'none');
+                event_map_ui.style('display', 'none');
+            });
+            d3.select('#stat-map-btn').on('click', () => {
+                mode = 'stat';
+                map_container
+                    .selectAll('path')
+                    .attr('fill', d => fill_danger_color(d));
+                circle.style('display', 'inline');
+                event_map_ui.style('display', 'none');
+            });
             
             d3.json('https://raw.githubusercontent.com/org-scn-design-studio-community/sdkcommunitymaps/master/geojson/Europe/Ukraine-regions.json').then(
                 data => {
                     const regions = topojson.feature(data, data.objects.UKR_adm1);
+                    regions.features.forEach(d => {
+                        d.properties.mapped_name = region_name_mapper[d.properties.NAME_1];
+                    })
 
                     map_container.selectAll('path')
                         .data(regions.features)
@@ -250,8 +284,9 @@
                         .attr('fill', 'grey')
                         .attr('stroke', 'white')
                         .attr('stroke-width', '1')
+                        .attr('fill', d => fill_danger_color(d))
                         .append('title') // Add a tooltop
-                        .text(d => d.properties.NAME_1);
+                        .text(d => d.properties.mapped_name);
                 }
             );
 
@@ -274,9 +309,17 @@
             
             d3.csv('output.csv').then(
                 data => {
-                    // data = data.filter(d => d.sub_event_type != 'Armed clash')
                     data.forEach(d => {
                         d.dt = new Date(d.event_date);
+
+                        if (!(d.admin1 in danger_info)) {
+                            danger_info[d.admin1] = {
+                                'num_events': 0,
+                                'total_fatalities': 0
+                            }
+                        }
+                        danger_info[d.admin1].total_fatalities += 1 * d.fatalities;
+                        danger_info[d.admin1].num_events += 1;
                     })
 
                     let zScale = d3.scaleOrdinal()
@@ -286,14 +329,41 @@
                     event_data = data;
 
                     /* Script for bi-directional range slider */
-                    // var dt_from = "2014/11/01 00:34:44";
-                    // var dt_to = "2014/11/24 16:37:43";
                     var dates = data.map(d => d.dt);
-                    var dt_from = Math.min(...dates);
-                    var dt_to = Math.max(...dates);
+                    dt_from = Math.min(...dates);
+                    dt_to = Math.max(...dates);
 
                     $('.slider-time').html(formatDT(dt_from));
                     $('.slider-time2').html(formatDT(dt_to));
+                    // d3.select('input[name=from-date]')
+                    //     .property('value', formatDT(dt_from))
+                    //     .on('change', (e) => {
+                    //         var fdt = d3.select('input[name=from-date]').property('value');
+                    //         dt_cur_from = new Date(fdt);
+                    //         $('.slider-time').html(formatDT(dt_cur_from));
+                            
+                    //         var tdt = d3.select('input[name=to-date]').property('value');
+                    //         dt_cur_to = new Date(tdt);              
+                    //         $('.slider-time2').html(formatDT(dt_cur_to));
+
+                    //         $('#slider-range').slider('value', [dt_cur_from / 1000, dt_cur_to / 1000]);
+                    //         updateAll();
+                    //     });
+                    // d3.select('input[name=to-date]')
+                    //     .property('value', formatDT(dt_to))
+                    //     .on('change', (e) => {
+                    //         var fdt = d3.select('input[name=from-date]').property('value');
+                    //         dt_cur_from = new Date(fdt);
+                    //         $('.slider-time').html(formatDT(dt_cur_from));
+                            
+                    //         var tdt = d3.select('input[name=to-date]').property('value');
+                    //         dt_cur_to = new Date(tdt);              
+                    //         $('.slider-time2').html(formatDT(dt_cur_to));
+
+                    //         $('#slider-range').slider('value', [dt_cur_from / 1000, dt_cur_to / 1000]);
+                    //         updateAll();
+                    //     });
+
                     var min_val = dt_from / 1000;
                     var max_val = dt_to / 1000;
 
@@ -317,11 +387,13 @@
                         step: 10,
                         values: [min_val, max_val],
                         slide: function (e, ui) {
-                            dt_cur_from = new Date(ui.values[0]*1000); //.format("yyyy-mm-dd hh:ii:ss");
+                            dt_cur_from = new Date(ui.values[0]*1000);
                             $('.slider-time').html(formatDT(dt_cur_from));
-
-                            dt_cur_to = new Date(ui.values[1]*1000); //.format("yyyy-mm-dd hh:ii:ss");                
+                            d3.select('input[name=from-date]').property('value', dt_cur_from);
+                            
+                            dt_cur_to = new Date(ui.values[1]*1000);              
                             $('.slider-time2').html(formatDT(dt_cur_to));
+                            d3.select('input[name=to-date]').property('value', dt_cur_to);
 
                             updateAll();
                         }
@@ -365,48 +437,22 @@
                 }
             )
 
+            svg.on('click', () => {
+                tooltip.style('display', 'none');
+            });
+
             svg.call(
                 d3.zoom()
                     .scaleExtent([0.5, 20])
                     .on('zoom', ({ transform }) => {
                         world_container.attr('transform', transform);
                         map_container.attr('transform', transform);
+                        danger_map_container.attr('transform', transform);
                         event_container.attr('transform', transform);
                     })
             );
 
             d3.selectAll('input[type=checkbox]').on('change', updateAll);
-
-            function updateAll() {
-                show_clash = d3.select('#show-clash').property('checked');
-                show_overtake = d3.select('#show-overtake').property('checked');
-                show_regain = d3.select('#show-regain').property('checked');
-
-                options = {
-                    'toggle': {
-                        'show_clash': show_clash,
-                        'show_overtake': show_overtake,
-                        'show_regain': show_regain
-                    }
-                }
-
-                circle.style('display', d => check_display(d, [show_clash, show_overtake, show_regain]) ? 
-                    'inline' 
-                    : 'none')
-            }
-
-            function check_display(item, option_list) {
-                let idx = event_type_list.findIndex(d => d === item.sub_event_type);
-                return option_list[idx] && dt_cur_from < item.dt && item.dt < dt_cur_to;
-            }
-
-            function cleanse_region_name(name) {
-                // TODO: replace region name of Ukraine map to dataset's location name.
-            }
-
-            function change_idiom_view(btn) {
-                
-            }
         </script>
     </body>
 </html>
