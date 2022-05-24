@@ -30,6 +30,9 @@
         <link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
 
         <style>
+            #map {
+                background: #406680;
+            }
             #time-range p {
                 font-family:"Arial", sans-serif;
                 font-size:14px;
@@ -291,8 +294,8 @@
                 });
             svg.call(zoom);
 
-            function fill_danger_color(item) {
-                if (mode !== 'danger')
+            function fill_danger_color(item, force_color=false) {
+                if (!force_color && mode !== 'danger')
                     return 'grey';
                 
                 var danger = 0;
@@ -505,7 +508,7 @@
                 
                 map_container
                     .selectAll('path')
-                    .attr('fill', d => fill_danger_color(d));
+                    .attr('fill', d => fill_danger_color(d, force_color=false));
                 
                 event_legend.style('display', 'none');
                 danger_legend.style('display', 'none');
@@ -662,8 +665,8 @@
                             if (mode === 'danger') {
                                 circle.style('display', 'none');
                                 map_container
-                                .selectAll('path')
-                                .attr('fill', d => fill_danger_color(d));
+                                    .selectAll('path')
+                                    .attr('fill', d => fill_danger_color(d));
                             }
                         }
                     });
