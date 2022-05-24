@@ -21,8 +21,6 @@
         <script src="https://cdn.jsdelivr.net/npm/d3-transition@3"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3-brush@3"></script>
 
-        <script src="components/map.js"></script>
-        <script src="components/event.js"></script>
         <script src="components/utils.js"></script>
     
         <script type='text/javascript' src='//code.jquery.com/jquery-2.0.2.js'></script>
@@ -201,6 +199,12 @@
                     Some tooltip text!
                 </div>
             </div>
+            <div class="tooltip bs-tooltip-top show" id="trend-tooltip" role="tooltip" style="display: none">
+                <div class="tooltip-arrow"></div>
+                <div class="tooltip-inner">
+                    Some tooltip text!
+                </div>
+            </div>
         </div>
 
         <script>
@@ -245,6 +249,7 @@
 
             var region_tooltip = d3.select('#region-tooltip')
             var event_tooltip = d3.select('#event-tooltip')
+            var trend_tooltip = d3.select('#trend-tooltip')
 
             var event_map_ui = d3.select("#event-ui")
 
@@ -386,6 +391,31 @@
                     .attr('width', 9)
                     .attr('height', d => trend_height - trend_y_scale(d.event) - 20)
                     .attr('fill', 'lightgrey')
+                    .on('mouseover', (e, d) => {
+                        var txt = `<strong>${month_name[d.x.getMonth()]} ${d.x.getFullYear()}</strong>
+                            <br/># of events: ${d.event}
+                            <br/>fatalities: ${d.fatalities}`
+                            
+                        trend_tooltip.select('.tooltip-inner')
+                            .html(txt);
+                        
+                        Popper.createPopper(e.target, trend_tooltip.node(), {
+                            placement: 'right',
+                            modifiers: [
+                                {
+                                    name: 'arrow',
+                                        options: {
+                                        element: this.trend_tooltip.select(".tooltip-arrow").node()
+                                    }
+                                }
+                            ]
+                        });
+
+                        trend_tooltip.style('display', 'block');
+                    })
+                    .on('mouseout', (d) => {
+                        trend_tooltip.style('display', 'none');
+                    });
                 
                 fatal_trend
                     .selectAll('rect')
@@ -396,11 +426,31 @@
                     .attr('width', 9)
                     .attr('height', d => trend_height - trend_y2_scale(d.fatalities) - 20)
                     .attr('fill', '#C07060')
-                    // .attr('fill', d => event_type_scale(d.sub_event_type))
-                    // .attr('r', d => 1 + 3 * Math.log10(1 + d.fatalities))
-                
-                // trend_x_scale.domain([0, Math.max(items.map(d => d.dt))])
-                // trend_y_scale.domain([Math.max(items.map(d => d.fatalities)), 0])
+                    .on('mouseover', (e, d) => {
+                        var txt = `<strong>${month_name[d.x.getMonth()]} ${d.x.getFullYear()}</strong>
+                        <br/># of events: ${d.event}
+                        <br/>fatalities: ${d.fatalities}`
+                            
+                        trend_tooltip.select('.tooltip-inner')
+                            .html(txt);
+                        
+                        Popper.createPopper(e.target, trend_tooltip.node(), {
+                            placement: 'right',
+                            modifiers: [
+                                {
+                                    name: 'arrow',
+                                        options: {
+                                        element: this.trend_tooltip.select(".tooltip-arrow").node()
+                                    }
+                                }
+                            ]
+                        });
+
+                        trend_tooltip.style('display', 'block');
+                    })
+                    .on('mouseout', (d) => {
+                        trend_tooltip.style('display', 'none');
+                    });
 
                 trend_xaxis
                     .attr('transform', `translate(30, ${trend_height - 20})`)
@@ -585,7 +635,7 @@
                 .attr('width', width)
                 .attr('height', height);
             
-            d3.csv('output.csv').then(
+            d3.csv('components/output.csv').then(
                 data => {
                     data.forEach(d => {
                         d.dt = new Date(d.event_date);
