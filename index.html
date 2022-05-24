@@ -10,6 +10,7 @@
         <script src="https://unpkg.com/topojson@3"></script>
         <script src="https://unpkg.com/@popperjs/core@2"></script>
 
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3-ease@3"></script>
@@ -131,6 +132,10 @@
                 stroke-width: 1;
                 stroke: white;
             }
+            .legendCells rect {
+                stroke-width: 1;
+                stroke: white;
+            }
         </style>
     </head>
 
@@ -140,9 +145,16 @@
             <button type="button" class="btn btn-secondary idiom" id="danger-map-btn" style="width: 300px; height: 50px;">Dangerous Region Map</button>
             <button type="button" class="btn btn-secondary idiom" id="stat-map-btn" style="width: 300px; height: 50px;">Battle Stats & Trends</button>
         </div>
-        <div id="map-div" style="border: 5px">
-            <svg id="map"></svg>
-            <div id="event-ui">
+
+        <div class="ui-container">
+            <div id="time-range" style="width: 300px;">
+                <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
+                </p>
+                <div class="sliders_step1">
+                    <div id="slider-range"></div>
+                </div>
+            </div>
+            <div id="event-ui" style="float: left;">
                 <div width="1440">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="" id="show-clash" checked>
@@ -162,16 +174,14 @@
                         Government regains territory
                         </label>
                     </div>
-                
-                    <div id="time-range" style="width: 300px;">
-                        <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
-                        </p>
-                        <div class="sliders_step1">
-                            <div id="slider-range"></div>
-                        </div>
-                    </div>
                 </div>
             </div>
+        </div>
+
+        <div id="map-div" style="border: 5px">
+            <svg id="map"></svg>
+            <svg id="stat"></svg>
+
             <div class="tooltip bs-tooltip-top show" id="event-tooltip" role="tooltip" style="display: none">
                 <div class="tooltip-arrow"></div>
                 <div class="tooltip-inner">
@@ -192,10 +202,11 @@
             let event_data;
             let dt_from, dt_to, dt_cur_from, dt_cur_to;
             let danger_info = {};
-            let zoom, brush, brusher;
+            let zoom, brush;
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
+            const danger_level_list = ['No events', 'events > 10', 'fatalities > 100', 'events & fatalities > 100']
             const danger_level_colormap = ['grey', '#888866', '#907055', '#885555']
 
             var width = 1440;
@@ -204,17 +215,18 @@
             var svg = d3.select('#map')
                 .attr('width', width)
                 .attr('height', height);
+            var stat = d3.select('#stat')
+            
             var world_container = svg.append('g')
                 .attr('width', width)
                 .attr('height', height);
-            
             var map_container = svg.append('g')
                 .attr('width', width)
                 .attr('height', height);
             
             var projection = d3.geoMercator()
-                .center([32, 49])
-                .scale(2800)
+                .center([31, 49])
+                .scale(3000)
                 .translate([width / 2, height / 2]);
             var path = d3.geoPath()
                 .projection(projection);
@@ -224,25 +236,42 @@
 
             var event_map_ui = d3.select("#event-ui")
 
+            var event_legend = svg.append('g')
+                .attr('background-color', 'white')
+            var event_legend_scale = d3.scaleOrdinal().domain(event_type_list).range(event_type_colormap)
+            event_legend
+                    .style('display', 'inline')
+                    .attr('transform', `translate(${width - 300}, 30)`)
+                    .call(d3.legendColor().scale(event_legend_scale));
+            
+            var danger_legend = svg.append('g')
+                .attr('background-color', 'white')
+            var danger_legend_scale = d3.scaleOrdinal().domain(danger_level_list).range(danger_level_colormap)
+            danger_legend
+                .style('display', 'inline')
+                .attr('transform', `translate(${width - 300}, 30)`)
+                .call(d3.legendColor().scale(event_legend_scale));
+            
+            var trend_container = stat.append('g')
+                .attr('width', width)
+                .attr('height', 300);
+            
+            let trend_x_scale = d3.scaleTime().range([0, width])
+            let trend_y_scale = d3.scaleLinear().range([0, 300])
+
             brush = d3.brush()
                 .extent([[0, 0], [width, height]])
                 .on('start brush', (e) => {
                     if (e.selection != null)
                         brush_circles(e);
-                })
+                });
             zoom = d3.zoom()
                 .scaleExtent([0.5, 20])
                 .on('zoom', ({ transform }) => {
                     world_container.attr('transform', transform);
                     map_container.attr('transform', transform);
                     event_container.attr('transform', transform);
-                })
-            // brusher = svg.append('g')
-            //     .call(brush)
-            
-            // brusher.call(brush.clear);
-            
-            // svg.call(brush);
+                });
             svg.call(zoom);
 
             function fill_danger_color(item) {
@@ -251,11 +280,12 @@
                 
                 var danger = 0;
                 let name = item.properties.mapped_name;
+
                 if (name in danger_info) {
                     if (danger_info[name].num_events > 10) {
-                        if (danger_info[name].total_fatalities > 100)
+                        if (danger_info[name].num_events > 100)
                             danger = 3;
-                        else if (danger_info[name].total_fatalities > 10)
+                        else if (danger_info[name].total_fatalities > 100)
                             danger = 2;
                     }
                     else    danger = 1;
@@ -276,12 +306,30 @@
                     }
                 }
 
-                circle.style('display', d => check_display(d, [show_clash, show_overtake, show_regain]) ? 
-                    'inline' 
-                    : 'none')
+                circle
+                    .classed('selected', false)
+                    .style('display', 'none');
+                var selected = circle
+                    .filter(d => check_display(d, [show_clash, show_overtake, show_regain]))
+                    .classed('selected', true)
+                    .style('display', 'inline');
+                
+                danger_info = {}
+                selected.each((d, i) => {
+                    if (!(d.admin1 in danger_info)) {
+                        danger_info[d.admin1] = {
+                            'num_events': 0,
+                            'total_fatalities': 0
+                        }
+                    }
+                    danger_info[d.admin1].total_fatalities += 1 * d.fatalities;
+                    danger_info[d.admin1].num_events += 1;
+                })
             }
 
             function check_display(item, option_list) {
+                // if (mode === 'danger')
+                //     return false;
                 let idx = event_type_list.findIndex(d => d === item.sub_event_type);
                 return option_list[idx] && dt_cur_from <= item.dt && item.dt <= dt_cur_to;
             }
@@ -301,103 +349,81 @@
                 circle.classed('brushed', false);
             }
 
-            function set_tooltip() {
-                circle
-                    .on('mousedown', (d) => {
-                        if (shift_key) {
-                            d3.select(this).classed('selected', (d.selected = !d.selected))
-                        }
-                        else {
-                            circle.classed('selected', (p) => {
-                                return (p.selected = (d === p));
-                            })
-                        }
-                    })
-                    .on('mouseover', (e, d) => {
-                        event_tooltip.select('.tooltip-inner')
-                            .html(`<strong>${d.sub_event_type}</strong>
-                            <br/>Date: ${d.event_date}
-                            <br/>Lat: ${d.latitude} Lon: ${d.longitude}
-                            <br/> > <i>${d.notes}</i>
-                            <br/> Fatalities: ${d.fatalities}`);
-                        
-                        Popper.createPopper(e.target, event_tooltip.node(), {
-                            placement: 'top',
-                            modifiers: [
-                                {
-                                    name: 'arrow',
-                                        options: {
-                                        element: this.event_tooltip.select(".tooltip-arrow").node()
-                                    }
-                                }
-                            ]
-                        });
-
-                        event_tooltip.style('display', 'block');
-                    })
-                    .on('mouseout', (d) => {
-                        event_tooltip.style('display', 'none');
-                    });
-            }
-
             d3.select('#event-map-btn').on('click', () => {
                 mode = 'event';
+                
+                circle.style('display', 'inline');
+                updateAll();
+
+                event_map_ui.style('display', 'block');
+                stat.style('display', 'none');
+                reset_brush();
 
                 map_container
                     .style('display', 'inline')
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
-                
-                circle.style('display', 'inline');
-                updateAll();
-                event_map_ui.style('display', 'block');
-                reset_brush();
 
+                event_legend
+                    .style('display', 'inline')
+                    .attr('transform', `translate(${width - 300}, 30)`)
+                    .call(d3.legendColor().scale(event_legend_scale));
+                danger_legend.style('display', 'none');
+                
                 svg.call(zoom);
                 svg.on('.brush', null);
                 svg.call(brush.clear);
                 svg.selectAll('rect')
-                    .remove();
-                // d3.select('.brush').call(brush.clear);
-
-                d3.select('rect[cursor=crosshair]').attr('cursor', 'default');
+                    .style('display', 'none');
             });
             d3.select('#danger-map-btn').on('click', () => {
                 mode = 'danger';
+                
+                updateAll();
+                circle.style('display', 'none');
+
+                event_map_ui.style('display', 'none');
+                stat.style('display', 'none');
+                reset_brush();
 
                 map_container
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
                 
-                circle.style('display', 'none');
-                event_map_ui.style('display', 'none');
-                reset_brush();
+                event_legend.style('display', 'none');
+                danger_legend
+                    .style('display', 'inline')
+                    .attr('transform', `translate(${width - 300}, 30)`)
+                    .call(d3.legendColor().scale(danger_legend_scale));
                 
                 svg.call(zoom);
                 svg.on('.brush', null);
                 svg.call(brush.clear);
                 svg.selectAll('rect')
-                    .remove();
-                // d3.select('.brush').call(brush.clear);
-                
-                d3.select('rect[cursor=crosshair]').attr('cursor', 'default');
+                    .style('display', 'none');
             });
             d3.select('#stat-map-btn').on('click', () => {
                 mode = 'stat';
                 
+                circle.style('display', 'inline');
+                updateAll();
+                
+                event_map_ui.style('display', 'none');
+                stat.style('display', 'inline');
+                reset_brush();
+                
                 map_container
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
                 
-                circle.style('display', 'inline');
-                event_map_ui.style('display', 'none');
-                reset_brush();
+                event_legend.style('display', 'none');
+                danger_legend.style('display', 'none');
                 
-                svg.call(brush);
                 svg.call(zoom.transform, d3.zoomIdentity);
                 svg.on('.zoom', null);
-                
-                svg.attr('cursor', 'default');
+                svg.call(brush);
+                svg.selectAll('rect')
+                    .style('display', 'inline');
             });
             
             d3.json('https://raw.githubusercontent.com/org-scn-design-studio-community/sdkcommunitymaps/master/geojson/Europe/Ukraine-regions.json').then(
@@ -525,6 +551,12 @@
                             d3.select('input[name=to-date]').property('value', dt_cur_to);
 
                             updateAll();
+                            if (mode === 'danger') {
+                                circle.style('display', 'none');
+                                map_container
+                                .selectAll('path')
+                                .attr('fill', d => fill_danger_color(d));
+                            }
                         }
                     });
 
@@ -537,16 +569,7 @@
                         .attr('cy', d => projection([d.longitude, d.latitude])[1])
                         .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
                         .attr('r', d => 1 + 3 * Math.log10(1 + d.fatalities))
-                        .on('mousedown', (d) => {
-                            if (shift_key) {
-                                d3.select(this).classed('selected', (d.selected = !d.selected))
-                            }
-                            else {
-                                circle.classed('selected', (p) => {
-                                    return (p.selected = (d === p));
-                                })
-                            }
-                        })
+                        .classed('selected', true)
                         .on('mouseover', (e, d) => {
                             event_tooltip.select('.tooltip-inner')
                                 .html(`<strong>${d.sub_event_type}</strong>
