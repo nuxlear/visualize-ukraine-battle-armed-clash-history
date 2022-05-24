@@ -136,6 +136,10 @@
                 stroke-width: 1;
                 stroke: white;
             }
+            .legendCells .label {
+                color: 'white';
+                font-weight: bold;
+            }
         </style>
     </head>
 
@@ -201,9 +205,10 @@
             let circle;
             let event_data;
             let dt_from, dt_to, dt_cur_from, dt_cur_to;
+            let event_type_scale;
             let danger_info = {};
             let zoom, brush;
-            let brushed = [];
+            let selected, brushed = [];
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
@@ -212,7 +217,7 @@
 
             var width = 1440;
             var height = 900;
-            var trend_height = 500;
+            var trend_height = 300;
             
             var svg = d3.select('#map')
                 .attr('width', width)
@@ -245,7 +250,7 @@
             var event_legend_scale = d3.scaleOrdinal().domain(event_type_list).range(event_type_colormap)
             event_legend
                     .style('display', 'inline')
-                    .attr('transform', `translate(${width - trend_height}, 30)`)
+                    .attr('transform', `translate(${width - 300}, 30)`)
                     .call(d3.legendColor().scale(event_legend_scale));
             
             var danger_legend = svg.append('g')
@@ -253,25 +258,29 @@
             var danger_legend_scale = d3.scaleOrdinal().domain(danger_level_list).range(danger_level_colormap)
             danger_legend
                 .style('display', 'inline')
-                .attr('transform', `translate(${width - trend_height}, 30)`)
+                .attr('transform', `translate(${width - 300}, 30)`)
                 .call(d3.legendColor().scale(event_legend_scale));
             
-            var trend_container = stat.append('g')
+            var event_trend = stat.append('g')
                 .attr('width', width)
                 .attr('height', trend_height);
-            
-            var trend_plot = stat.append('g');
+            var fatal_trend = stat.append('g')
+                .attr('width', width)
+                .attr('height', trend_height);
             var trend_xaxis = stat.append('g');
             var trend_yaxis = stat.append('g');
-            let trend_x_scale = d3.scaleTime().range([0, width])
-            let trend_y_scale = d3.scaleLinear().range([0, trend_height])
+            var trend_y2axis = stat.append('g');
+            let trend_x_scale = d3.scaleTime().range([0, width - 60])
+            let trend_y_scale = d3.scaleLinear().range([trend_height - 40, 0])
+            let trend_y2_scale = d3.scaleLinear().range([trend_height - 40, 0])
 
             brush = d3.brush()
                 .extent([[0, 0], [width, height]])
                 .on('start brush', (e) => {
-                    if (e.selection != null)
-                        brush_circles(e);
+                    if (e.selection != null) {
+                        brush_circles(e.selection);
                         plotAll();
+                    }
                 });
             zoom = d3.zoom()
                 .scaleExtent([0.5, 20])
@@ -317,7 +326,7 @@
                 circle
                     .classed('selected', false)
                     .style('display', 'none');
-                var selected = circle
+                selected = circle
                     .filter(d => check_display(d, [show_clash, show_overtake, show_regain]))
                     .classed('selected', true)
                     .style('display', 'inline');
@@ -336,18 +345,68 @@
             }
 
             function plotAll() {
-                items = circle.data();
+                items = selected.data();
                 if (brushed.length > 0) {
                     items = brushed;
                 }
+
+                monthly = {}
+                items.forEach((d) => {
+                    let m = d3.timeMonth(d.dt);
+                    if (monthly[m] == null) {
+                        monthly[m] = {
+                            x: m,
+                            event: 0,
+                            fatalities: 0
+                        };
+                    }
+                    monthly[m].event += 1
+                    monthly[m].fatalities += 1 * d.fatalities;
+                })
+                mdata = Object.entries(monthly).map(x => x[1])
+
+                let max_y = Math.max(...mdata.map(x => x.event)) + 10;
+                trend_y_scale.domain([0, max_y])
+                    trend_y_scale.ticks(Math.round(max_y / 10))
+        
+                let max_y2 = Math.max(...mdata.map(x => x.fatalities)) + 10;
+                trend_y2_scale.domain([0, max_y2])
+                    trend_y2_scale.ticks(Math.round(max_y2 / 10))
+
+                event_trend
+                    .selectAll('rect')
+                    .data(mdata)
+                    .join('rect')
+                    .attr('x', d => 35 + trend_x_scale(d.x))
+                    .attr('y', d => trend_y_scale(d.event))
+                    .attr('width', 9)
+                    .attr('height', d => trend_height - trend_y_scale(d.event) - 20)
+                    .attr('fill', 'lightgrey')
                 
-                trend_plot;
+                fatal_trend
+                    .selectAll('rect')
+                    .data(mdata)
+                    .join('rect')
+                    .attr('x', d => 45 + trend_x_scale(d.x))
+                    .attr('y', d => trend_y2_scale(d.fatalities))
+                    .attr('width', 9)
+                    .attr('height', d => trend_height - trend_y2_scale(d.fatalities) - 20)
+                    .attr('fill', '#C07060')
+                    // .attr('fill', d => event_type_scale(d.sub_event_type))
+                    // .attr('r', d => 1 + 3 * Math.log10(1 + d.fatalities))
+                
+                // trend_x_scale.domain([0, Math.max(items.map(d => d.dt))])
+                // trend_y_scale.domain([Math.max(items.map(d => d.fatalities)), 0])
+
                 trend_xaxis
-                    .attr('transform', `translate(10, 100)`)
+                    .attr('transform', `translate(30, ${trend_height - 20})`)
                     .call(d3.axisBottom(trend_x_scale));
                 trend_yaxis
-                    .attr('transform', `translate(10, 10)`)
+                    .attr('transform', `translate(30, 10)`)
                     .call(d3.axisLeft(trend_y_scale));
+                trend_y2axis
+                    .attr('transform', `translate(${width - 30}, 10)`)
+                    .call(d3.axisRight(trend_y2_scale));
             }
 
             function check_display(item, option_list) {
@@ -357,10 +416,9 @@
                 return option_list[idx] && dt_cur_from <= item.dt && item.dt <= dt_cur_to;
             }
 
-            function brush_circles(event) {
-                let selection = event.selection;
+            function brush_circles(selection) {
                 brushed = []
-                circle.classed('brushed', d => {
+                selected.classed('brushed', d => {
                     if (is_brushed(d, selection)) {
                         brushed.push(d);
                         return true;
@@ -382,6 +440,7 @@
             d3.select('#event-map-btn').on('click', () => {
                 mode = 'event';
                 
+                brushed = [];
                 circle.style('display', 'inline');
                 updateAll();
 
@@ -409,6 +468,7 @@
             d3.select('#danger-map-btn').on('click', () => {
                 mode = 'danger';
                 
+                brushed = [];
                 updateAll();
                 circle.style('display', 'none');
 
@@ -536,9 +596,9 @@
                         danger_info[d.admin1].num_events += 1;
                     })
 
-                    let zScale = d3.scaleOrdinal()
+                    event_type_scale = d3.scaleOrdinal()
                         .domain(event_type_list)
-                        .range([0, 1, 2])
+                        .range(event_type_colormap)
                         
                     event_data = data;
 
@@ -553,8 +613,13 @@
                     var min_val = dt_from / 1000;
                     var max_val = dt_to / 1000;
 
-                    trend_x_scale.domain([d3.timeMonth.floor(dt_from), d3.timeMonth.ceil(dt_to)])
-                    trend_y_scale.domain([0, data.length])
+                    trend_x_scale
+                        .domain([d3.timeMonth.floor(dt_from), d3.timeMonth.ceil(dt_to)])
+                        .ticks(d3.timeMonth.every(1))
+                    trend_y_scale
+                        .domain([0, data.length])
+                    trend_y2_scale
+                        .domain([0, 1000])
 
                     function zeroPad(num, places) {
                         var zero = places - num.toString().length + 1;
@@ -585,6 +650,15 @@
                             d3.select('input[name=to-date]').property('value', dt_cur_to);
 
                             updateAll();
+                            // let brush_rect = d3.select('.selection')
+                            // let [x, y] = [brush_rect.attr('x'), brush_rect.attr('y')]
+                            // let [w, h] = [brush_rect.attr('width'), brush_rect.attr('height')]
+                            // let selection = [[x, y], [x+w, y+h]]
+                            // brush_circles(selection);
+                            brushed = []
+                            svg.call(brush.clear);
+                            circle.classed('brushed', false);
+                            plotAll();
                             if (mode === 'danger') {
                                 circle.style('display', 'none');
                                 map_container
@@ -601,7 +675,7 @@
                     circle
                         .attr('cx', d => projection([d.longitude, d.latitude])[0])
                         .attr('cy', d => projection([d.longitude, d.latitude])[1])
-                        .attr('fill', d => event_type_colormap[zScale(d.sub_event_type)])
+                        .attr('fill', d => event_type_scale(d.sub_event_type))
                         .attr('r', d => 1 + 3 * Math.log10(1 + d.fatalities))
                         .classed('selected', true)
                         .on('mouseover', (e, d) => {
