@@ -26,133 +26,18 @@
         <script type='text/javascript' src='//code.jquery.com/jquery-2.0.2.js'></script>
         <script type="text/javascript" src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
         <link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
-
-        <style>
-            #map {
-                background: #406680;
-            }
-            #time-range p {
-                font-family:"Arial", sans-serif;
-                font-size:14px;
-                color:#333;
-            }
-            .ui-slider-horizontal {
-                height: 8px;
-                background: #D7D7D7;
-                border: 1px solid #BABABA;
-                box-shadow: 0 1px 0 #FFF, 0 1px 0 #CFCFCF inset;
-                clear: both;
-                margin: 8px 0;
-                -webkit-border-radius: 6px;
-                -moz-border-radius: 6px;
-                -ms-border-radius: 6px;
-                -o-border-radius: 6px;
-                border-radius: 6px;
-            }
-            .ui-slider {
-                position: relative;
-                text-align: left;
-            }
-            .ui-slider-horizontal .ui-slider-range {
-                top: -1px;
-                height: 100%;
-            }
-            .ui-slider .ui-slider-range {
-                position: absolute;
-                z-index: 1;
-                height: 8px;
-                font-size: .7em;
-                display: block;
-                border: 1px solid #5BA8E1;
-                box-shadow: 0 1px 0 #AAD6F6 inset;
-                -moz-border-radius: 6px;
-                -webkit-border-radius: 6px;
-                -khtml-border-radius: 6px;
-                border-radius: 6px;
-                background: #81B8F3;
-                background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgi…pZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JhZCkiIC8+PC9zdmc+IA==');
-                background-size: 100%;
-                background-image: -webkit-gradient(linear, 50% 0, 50% 100%, color-stop(0%, #A0D4F5), color-stop(100%, #81B8F3));
-                background-image: -webkit-linear-gradient(top, #A0D4F5, #81B8F3);
-                background-image: -moz-linear-gradient(top, #A0D4F5, #81B8F3);
-                background-image: -o-linear-gradient(top, #A0D4F5, #81B8F3);
-                background-image: linear-gradient(top, #A0D4F5, #81B8F3);
-            }
-            .ui-slider .ui-slider-handle {
-                border-radius: 50%;
-                background: #F9FBFA;
-                background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgi…pZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JhZCkiIC8+PC9zdmc+IA==');
-                background-size: 100%;
-                background-image: -webkit-gradient(linear, 50% 0, 50% 100%, color-stop(0%, #C7CED6), color-stop(100%, #F9FBFA));
-                background-image: -webkit-linear-gradient(top, #C7CED6, #F9FBFA);
-                background-image: -moz-linear-gradient(top, #C7CED6, #F9FBFA);
-                background-image: -o-linear-gradient(top, #C7CED6, #F9FBFA);
-                background-image: linear-gradient(top, #C7CED6, #F9FBFA);
-                width: 22px;
-                height: 22px;
-                -webkit-box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.6), 0 -1px 0 1px rgba(0, 0, 0, 0.15) inset, 0 1px 0 1px rgba(255, 255, 255, 0.9) inset;
-                -moz-box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.6), 0 -1px 0 1px rgba(0, 0, 0, 0.15) inset, 0 1px 0 1px rgba(255, 255, 255, 0.9) inset;
-                box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.6), 0 -1px 0 1px rgba(0, 0, 0, 0.15) inset, 0 1px 0 1px rgba(255, 255, 255, 0.9) inset;
-                -webkit-transition: box-shadow .3s;
-                -moz-transition: box-shadow .3s;
-                -o-transition: box-shadow .3s;
-                transition: box-shadow .3s;
-            }
-            .ui-slider .ui-slider-handle {
-                position: absolute;
-                z-index: 2;
-                width: 22px;
-                height: 22px;
-                cursor: default;
-                border: none;
-                cursor: pointer;
-            }
-            .ui-slider .ui-slider-handle:after {
-                content:"";
-                position: absolute;
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                top: 50%;
-                margin-top: -4px;
-                left: 50%;
-                margin-left: -4px;
-                background: #30A2D2;
-                -webkit-box-shadow: 0 1px 1px 1px rgba(22, 73, 163, 0.7) inset, 0 1px 0 0 #FFF;
-                -moz-box-shadow: 0 1px 1px 1px rgba(22, 73, 163, 0.7) inset, 0 1px 0 0 white;
-                box-shadow: 0 1px 1px 1px rgba(22, 73, 163, 0.7) inset, 0 1px 0 0 #FFF;
-            }
-            .ui-slider-horizontal .ui-slider-handle {
-                top: -.5em;
-                margin-left: -.6em;
-            }
-            .ui-slider a:focus {
-                outline:none;
-            }
-            .brushed {
-                stroke-width: 1;
-                stroke: white;
-            }
-            .legendCells rect {
-                stroke-width: 1;
-                stroke: white;
-            }
-            .legendCells .label {
-                color: 'white';
-                font-weight: bold;
-            }
-        </style>
+        <link rel="stylesheet" type="text/css" href="components/style.css">
     </head>
 
     <body>
         <div class="idiom-selector">
-            <button type="button" class="btn btn-secondary idiom" id="event-map-btn" style="width: 300px; height: 50px;">Event Scatterplot Map</button>
-            <button type="button" class="btn btn-secondary idiom" id="danger-map-btn" style="width: 300px; height: 50px;">Dangerous Region Map</button>
-            <button type="button" class="btn btn-secondary idiom" id="stat-map-btn" style="width: 300px; height: 50px;">Battle Stats & Trends</button>
+            <button type="button" class="btn btn-secondary idiom" id="event-map-btn">Event Scatterplot Map</button>
+            <button type="button" class="btn btn-secondary idiom" id="danger-map-btn">Dangerous Region Map</button>
+            <button type="button" class="btn btn-secondary idiom" id="stat-map-btn">Battle Stats & Trends</button>
         </div>
 
         <div class="ui-container">
-            <div id="time-range" style="width: 300px;">
+            <div id="time-range">
                 <p>Time Range: <span class="slider-time"></span> - <span class="slider-time2"></span>
                 </p>
                 <div class="sliders_step1">
@@ -160,7 +45,7 @@
                 </div>
             </div>
             <div id="event-ui">
-                <div width="1440">
+                <div id="event-checklist" width="1440">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="" id="show-clash" checked>
                         <label class="form-check-label" for="show-clash">
@@ -182,6 +67,7 @@
                 </div>
             </div>
         </div>
+        <svg id="legend-svg"></svg>
 
         <div id="map-div" style="border: 5px">
             <svg id="map"></svg>
@@ -231,7 +117,11 @@
                 .attr('height', height);
             var stat = d3.select('#stat')
                 .attr('width', width)
-                .attr('height', trend_height);
+                .attr('height', trend_height + 20);
+            var legend_svg = d3.select("#legend-svg")
+                .attr('width', width)
+                .attr('height', 200)
+                .style('position', 'absolute');
             
             var world_container = svg.append('g')
                 .attr('width', width)
@@ -253,21 +143,21 @@
 
             var event_map_ui = d3.select("#event-ui")
 
-            var event_legend = svg.append('g')
+            var event_legend = legend_svg.append('g')
                 .attr('background-color', 'white')
             var event_legend_scale = d3.scaleOrdinal().domain(event_type_list).range(event_type_colormap)
             event_legend
-                    .style('display', 'inline')
-                    .attr('transform', `translate(${width - 300}, 30)`)
-                    .call(d3.legendColor().scale(event_legend_scale));
+                // .style('display', 'inline')
+                .attr('transform', `translate(30, 20)`)
+                .call(d3.legendColor().scale(event_legend_scale));
             
-            var danger_legend = svg.append('g')
+            var danger_legend = legend_svg.append('g')
                 .attr('background-color', 'white')
             var danger_legend_scale = d3.scaleOrdinal().domain(danger_level_list).range(danger_level_colormap)
             danger_legend
-                .style('display', 'inline')
-                .attr('transform', `translate(${width - 300}, 30)`)
-                .call(d3.legendColor().scale(event_legend_scale));
+                .style('opacity', '0')
+                .attr('transform', `translate(30, 20)`)
+                .call(d3.legendColor().scale(danger_legend_scale));
             
             var event_trend = stat.append('g')
                 .attr('width', width)
@@ -278,9 +168,9 @@
             var trend_xaxis = stat.append('g');
             var trend_yaxis = stat.append('g');
             var trend_y2axis = stat.append('g');
-            let trend_x_scale = d3.scaleTime().range([0, width - 60])
-            let trend_y_scale = d3.scaleLinear().range([trend_height - 40, 0])
-            let trend_y2_scale = d3.scaleLinear().range([trend_height - 40, 0])
+            let trend_x_scale = d3.scaleTime().range([0, width - 80])
+            let trend_y_scale = d3.scaleLinear().range([trend_height - 40, 20])
+            let trend_y2_scale = d3.scaleLinear().range([trend_height - 40, 20])
 
             brush = d3.brush()
                 .extent([[0, 0], [width, height]])
@@ -386,10 +276,10 @@
                     .selectAll('rect')
                     .data(mdata)
                     .join('rect')
-                    .attr('x', d => 35 + trend_x_scale(d.x))
-                    .attr('y', d => trend_y_scale(d.event))
+                    .attr('x', d => 45 + trend_x_scale(d.x))
+                    .attr('y', d => trend_y_scale(d.event) + 20)
                     .attr('width', 9)
-                    .attr('height', d => trend_height - trend_y_scale(d.event) - 20)
+                    .attr('height', d => trend_height - trend_y_scale(d.event) - 40)
                     .attr('fill', 'lightgrey')
                     .on('mouseover', (e, d) => {
                         var txt = `<strong>${month_name[d.x.getMonth()]} ${d.x.getFullYear()}</strong>
@@ -421,10 +311,10 @@
                     .selectAll('rect')
                     .data(mdata)
                     .join('rect')
-                    .attr('x', d => 45 + trend_x_scale(d.x))
-                    .attr('y', d => trend_y2_scale(d.fatalities))
+                    .attr('x', d => 55 + trend_x_scale(d.x))
+                    .attr('y', d => trend_y2_scale(d.fatalities) + 20)
                     .attr('width', 9)
-                    .attr('height', d => trend_height - trend_y2_scale(d.fatalities) - 20)
+                    .attr('height', d => trend_height - trend_y2_scale(d.fatalities) - 40)
                     .attr('fill', '#C07060')
                     .on('mouseover', (e, d) => {
                         var txt = `<strong>${month_name[d.x.getMonth()]} ${d.x.getFullYear()}</strong>
@@ -453,13 +343,13 @@
                     });
 
                 trend_xaxis
-                    .attr('transform', `translate(30, ${trend_height - 20})`)
+                    .attr('transform', `translate(40, ${trend_height - 20})`)
                     .call(d3.axisBottom(trend_x_scale));
                 trend_yaxis
-                    .attr('transform', `translate(30, 10)`)
+                    .attr('transform', `translate(40, 20)`)
                     .call(d3.axisLeft(trend_y_scale));
                 trend_y2axis
-                    .attr('transform', `translate(${width - 30}, 10)`)
+                    .attr('transform', `translate(${width - 40}, 20)`)
                     .call(d3.axisRight(trend_y2_scale));
             }
 
@@ -508,10 +398,10 @@
                     .attr('fill', d => fill_danger_color(d));
 
                 event_legend
-                    .style('display', 'inline')
-                    .attr('transform', `translate(${width - 300}, 30)`)
-                    .call(d3.legendColor().scale(event_legend_scale));
-                danger_legend.style('display', 'none');
+                    .style('opacity', '1')
+                    // .attr('transform', `translate(${width - 300}, 30)`)
+                    // .call(d3.legendColor().scale(event_legend_scale));
+                danger_legend.style('opacity', '0');
                 
                 svg.call(zoom);
                 svg.on('.brush', null);
@@ -534,11 +424,11 @@
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d));
                 
-                event_legend.style('display', 'none');
+                event_legend.style('opacity', '0');
                 danger_legend
-                    .style('display', 'inline')
-                    .attr('transform', `translate(${width - 300}, 30)`)
-                    .call(d3.legendColor().scale(danger_legend_scale));
+                    .style('opacity', '1')
+                    // .attr('transform', `translate(${width - 300}, 30)`)
+                    // .call(d3.legendColor().scale(danger_legend_scale));
                 
                 svg.call(zoom);
                 svg.on('.brush', null);
@@ -561,8 +451,8 @@
                     .selectAll('path')
                     .attr('fill', d => fill_danger_color(d, force_color=false));
                 
-                event_legend.style('display', 'none');
-                danger_legend.style('display', 'none');
+                event_legend.style('opacity', '1');
+                danger_legend.style('opacity', '0');
                 
                 svg.call(zoom.transform, d3.zoomIdentity);
                 svg.on('.zoom', null);
