@@ -215,7 +215,7 @@
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
-            const danger_level_list = ['No events', 'events > 10', 'fatalities > 100', 'events & fatalities > 100']
+            const danger_level_list = ['No events', 'events > 10 / fatalities > 0', 'events > 10 & fatalities > 100', 'events & fatalities > 100']
             const danger_level_colormap = ['grey', '#888866', '#907055', '#885555']
 
             var width = 1440;
@@ -302,13 +302,14 @@
                 let name = item.properties.mapped_name;
 
                 if (name in danger_info) {
-                    if (danger_info[name].num_events > 10) {
+                    if (danger_info[name].num_events > 10 || danger_info[name].total_fatalities > 0) {
                         if (danger_info[name].num_events > 100)
                             danger = 3;
                         else if (danger_info[name].total_fatalities > 100)
                             danger = 2;
+                        else
+                            danger = 1;
                     }
-                    else    danger = 1;
                 }
                 return danger_level_colormap[danger];
             }
@@ -659,9 +660,14 @@
                             // let selection = [[x, y], [x+w, y+h]]
                             // brush_circles(selection);
                             brushed = []
-                            svg.call(brush.clear);
+                            try {
+                                svg.call(brush.clear);
+                            } catch (error) {
+                                
+                            }
                             circle.classed('brushed', false);
                             plotAll();
+
                             if (mode === 'danger') {
                                 circle.style('display', 'none');
                                 map_container
