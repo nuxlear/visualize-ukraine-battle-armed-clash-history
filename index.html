@@ -203,6 +203,7 @@
             let dt_from, dt_to, dt_cur_from, dt_cur_to;
             let danger_info = {};
             let zoom, brush;
+            let brushed = [];
             
             const event_type_list = ['Armed clash', 'Non-state actor overtakes territory', 'Government regains territory'];
             const event_type_colormap = ['#444444C0', '#FF2222C0', '#22FF22C0'];
@@ -211,11 +212,14 @@
 
             var width = 1440;
             var height = 900;
+            var trend_height = 500;
             
             var svg = d3.select('#map')
                 .attr('width', width)
                 .attr('height', height);
             var stat = d3.select('#stat')
+                .attr('width', width)
+                .attr('height', trend_height);
             
             var world_container = svg.append('g')
                 .attr('width', width)
@@ -241,7 +245,7 @@
             var event_legend_scale = d3.scaleOrdinal().domain(event_type_list).range(event_type_colormap)
             event_legend
                     .style('display', 'inline')
-                    .attr('transform', `translate(${width - 300}, 30)`)
+                    .attr('transform', `translate(${width - trend_height}, 30)`)
                     .call(d3.legendColor().scale(event_legend_scale));
             
             var danger_legend = svg.append('g')
@@ -249,21 +253,25 @@
             var danger_legend_scale = d3.scaleOrdinal().domain(danger_level_list).range(danger_level_colormap)
             danger_legend
                 .style('display', 'inline')
-                .attr('transform', `translate(${width - 300}, 30)`)
+                .attr('transform', `translate(${width - trend_height}, 30)`)
                 .call(d3.legendColor().scale(event_legend_scale));
             
             var trend_container = stat.append('g')
                 .attr('width', width)
-                .attr('height', 300);
+                .attr('height', trend_height);
             
+            var trend_plot = stat.append('g');
+            var trend_xaxis = stat.append('g');
+            var trend_yaxis = stat.append('g');
             let trend_x_scale = d3.scaleTime().range([0, width])
-            let trend_y_scale = d3.scaleLinear().range([0, 300])
+            let trend_y_scale = d3.scaleLinear().range([0, trend_height])
 
             brush = d3.brush()
                 .extent([[0, 0], [width, height]])
                 .on('start brush', (e) => {
                     if (e.selection != null)
                         brush_circles(e);
+                        plotAll();
                 });
             zoom = d3.zoom()
                 .scaleExtent([0.5, 20])
@@ -327,6 +335,21 @@
                 })
             }
 
+            function plotAll() {
+                items = circle.data();
+                if (brushed.length > 0) {
+                    items = brushed;
+                }
+                
+                trend_plot;
+                trend_xaxis
+                    .attr('transform', `translate(10, 100)`)
+                    .call(d3.axisBottom(trend_x_scale));
+                trend_yaxis
+                    .attr('transform', `translate(10, 10)`)
+                    .call(d3.axisLeft(trend_y_scale));
+            }
+
             function check_display(item, option_list) {
                 // if (mode === 'danger')
                 //     return false;
@@ -336,7 +359,14 @@
 
             function brush_circles(event) {
                 let selection = event.selection;
-                circle.classed('brushed', d => is_brushed(d, selection))
+                brushed = []
+                circle.classed('brushed', d => {
+                    if (is_brushed(d, selection)) {
+                        brushed.push(d);
+                        return true;
+                    }
+                    return false;
+                })
             }
 
             function is_brushed(d, selection) {
@@ -407,6 +437,7 @@
                 
                 circle.style('display', 'inline');
                 updateAll();
+                plotAll();
                 
                 event_map_ui.style('display', 'none');
                 stat.style('display', 'inline');
@@ -521,6 +552,9 @@
 
                     var min_val = dt_from / 1000;
                     var max_val = dt_to / 1000;
+
+                    trend_x_scale.domain([d3.timeMonth.floor(dt_from), d3.timeMonth.ceil(dt_to)])
+                    trend_y_scale.domain([0, data.length])
 
                     function zeroPad(num, places) {
                         var zero = places - num.toString().length + 1;
